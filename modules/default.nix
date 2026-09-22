@@ -28,5 +28,38 @@ in
     home.file = lib.mkIf (caddyConf.configFile != null) {
       ".config/caddy/Caddyfile".text = caddyConf.configFile;
     };
+
+    launchd.agents.caddy = lib.mkIf config.launchd.enable {
+      enable = true;
+
+      config = {
+        ProgramArguments = [
+          "${caddyConf.package}/bin/caddy"
+          "run"
+          "--config"
+          "${config.home.homeDirectory}/.config/caddy/Caddyfile"
+        ];
+
+        RunAtLoad = true;
+        KeepAlive = true;
+      };
+    };
+
+    systemd.user.services.caddy = lib.mkIf config.systemd.user.enable {
+      Unit = {
+        Description = "Caddy Web Server";
+        After = [ "network.target" ];
+      };
+
+      Service = {
+        ExecStart = "${caddyConf.package}/bin/caddy run --config ${config.home.homeDirectory}/.config/caddy/Caddyfile";
+        ExecReload = "${caddyConf.package}/bin/caddy reload --config ${config.home.homeDirectory}/.config/caddy/Caddyfile";
+        Restart = "on-failure";
+      };
+
+      Install = {
+        WantedBy = [ "default.target" ];
+      };
+    };
   };
 }
