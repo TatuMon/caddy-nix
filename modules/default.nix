@@ -29,9 +29,8 @@ in
       ".config/caddy/Caddyfile".text = caddyConf.configFile;
     };
 
-    launchd.agents.caddy = lib.mkIf config.launchd.enable {
+    launchd.agents.caddy = {
       enable = true;
-
       config = {
         ProgramArguments = [
           "${caddyConf.package}/bin/caddy"
@@ -40,8 +39,14 @@ in
           "${config.home.homeDirectory}/.config/caddy/Caddyfile"
         ];
 
+        KeepAlive = {
+          Crashed = false;
+          SuccessfulExit = false;
+        };
         RunAtLoad = true;
-        KeepAlive = true;
+        ProcessType = "Background";
+        StandardOutPath = "${config.home.homeDirectory}/Library/Logs/caddy/stdout";
+        StandardErrorPath = "${config.home.homeDirectory}/Library/Logs/caddy/stderr";
       };
     };
 
