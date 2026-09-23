@@ -7,6 +7,21 @@
 let
   inherit (lib) types;
   caddyConf = config.programs.caddy;
+
+  caddyfilePath =
+    if caddyConf.config.path != null then
+      caddyConf.config.path
+    else
+      "${config.home.homeDirectory}/.config/caddy/Caddyfile";
+
+  launchScript =
+    let
+      script = pkgs.writeShellScriptBin "caddy-launch" ''
+        set -e
+        exec ${lib.getExe caddyConf.package} run --config ${caddyfilePath}
+      '';
+    in
+    lib.getExe script;
 in
 {
   options.programs.caddy = {
@@ -17,7 +32,7 @@ in
         type = types.nullOr (
           types.oneOf [
             types.path
-            types.string
+            types.str
           ]
         );
         default = null;
@@ -34,7 +49,7 @@ in
   config = lib.mkIf caddyConf.enable {
     assertions = [
       {
-        assertion = caddyConf.config.text != null && caddyConf.config.path != null;
+        assertion = caddyConf.config.text != caddyConf.config.path;
         message = "programs.caddy.config.path conflicts with programs.caddy.config.text";
       }
     ];
@@ -48,17 +63,7 @@ in
     launchd.agents.caddy = {
       enable = true;
       config = {
-        ProgramArguments = [
-          "${caddyConf.package}/bin/caddy"
-          "run"
-          "--config"
-          (
-            if caddyConf.config.path != null then
-              caddyConf.config.path
-            else
-              "${config.home.homeDirectory}/.config/caddy/Caddyfile"
-          )
-        ];
+        ProgramArguments = [ launchScript ];
 
         KeepAlive = {
           Crashed = false;
