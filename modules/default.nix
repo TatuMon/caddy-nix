@@ -12,26 +12,37 @@ in
   options.programs.caddy = {
     enable = lib.mkEnableOption "Caddy";
     package = lib.mkPackageOption pkgs "caddy" { };
-    configFile = lib.mkOption {
-      type = types.nullOr (
-        types.oneOf [
-          types.lines
-          types.path
-        ]
-      );
-      default = null;
-      description = "Contents of the Caddyfile.";
+    config = {
+      path = lib.mkOption {
+        type = types.nullOr (
+          types.oneOf [
+            types.path
+            types.string
+          ]
+        );
+        default = null;
+        description = "Path of config file";
+      };
+      text = lib.mkOption {
+        type = types.nullOr types.lines;
+        default = null;
+        description = "Content of config path. If specified, the Caddyfile will be written to .config/caddy/Caddyfile";
+      };
     };
   };
 
   config = lib.mkIf caddyConf.enable {
+    assertions = [
+      {
+        assertions = caddyConf.config.text != null && caddyConf.config.path != null;
+        message = "programs.caddy.config.path conflicts with programs.caddy.config.text";
+      }
+    ];
+
     home.packages = [ caddyConf.package ];
 
-    home.file = lib.mkIf (caddyConf.configFile != null) {
-      ".config/caddy/Caddyfile".source =
-        if builtins.isPath caddyConf.configFile then caddyConf.configFile else null;
-      ".config/caddy/Caddyfile".text =
-        if builtins.isString caddyConf.configFile then caddyConf.configFile else null;
+    home.file = lib.mkIf (caddyConf.config.text != null) {
+      ".config/caddy/Caddyfile".text = caddyConf.config.text;
     };
 
     launchd.agents.caddy = {
@@ -41,7 +52,12 @@ in
           "${caddyConf.package}/bin/caddy"
           "run"
           "--config"
-          "${config.home.homeDirectory}/.config/caddy/Caddyfile"
+          (
+            if caddyConf.config.path != null then
+              caddyConf.config.path
+            else
+              "${config.home.homeDirectory}/.config/caddy/Caddyfile"
+          )
         ];
 
         KeepAlive = {
