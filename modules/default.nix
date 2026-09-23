@@ -28,8 +28,10 @@ in
     home.packages = [ caddyConf.package ];
 
     home.file = lib.mkIf (caddyConf.configFile != null) {
-      ".config/caddy/Caddyfile".source = lib.mkIf (builtins.isPath caddyConf.configFile);
-      ".config/caddy/Caddyfile".text = lib.mkIf (builtins.isString caddyConf.configFile);
+      ".config/caddy/Caddyfile".source =
+        if builtins.isPath caddyConf.configFile then caddyConf.configFile else null;
+      ".config/caddy/Caddyfile".text =
+        if builtins.isString caddyConf.configFile then caddyConf.configFile else null;
     };
 
     launchd.agents.caddy = {
