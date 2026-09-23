@@ -5,6 +5,7 @@
   ...
 }:
 let
+  inherit (lib) types;
   caddyConf = config.programs.caddy;
 in
 {
@@ -12,7 +13,12 @@ in
     enable = lib.mkEnableOption "Caddy";
     package = lib.mkPackageOption pkgs "caddy" { };
     configFile = lib.mkOption {
-      type = lib.types.nullOr lib.types.lines;
+      type = types.nullOr (
+        types.oneOf [
+          types.lines
+          types.path
+        ]
+      );
       default = null;
       description = "Contents of the Caddyfile.";
     };
@@ -22,7 +28,8 @@ in
     home.packages = [ caddyConf.package ];
 
     home.file = lib.mkIf (caddyConf.configFile != null) {
-      ".config/caddy/Caddyfile".text = caddyConf.configFile;
+      ".config/caddy/Caddyfile".source = lib.mkIf (builtins.isPath caddyConf.configFile);
+      ".config/caddy/Caddyfile".text = lib.mkIf (builtins.isString caddyConf.configFile);
     };
 
     launchd.agents.caddy = {
