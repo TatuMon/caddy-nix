@@ -34,7 +34,7 @@ in
   config = lib.mkIf caddyConf.enable {
     assertions = [
       {
-        assertions = caddyConf.config.text != null && caddyConf.config.path != null;
+        assertion = caddyConf.config.text != null && caddyConf.config.path != null;
         message = "programs.caddy.config.path conflicts with programs.caddy.config.text";
       }
     ];
